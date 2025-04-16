@@ -7,7 +7,7 @@ def main():
     # Import data
     raw_df, inverters = helper_functions.load_and_initialize_df(
         "input_data/Edgecumbe Raw Sensor Data (14 days, 3s intervals).csv")  # Load raw data
-    print(raw_df)
+    # print(raw_df)
 
     # Apply 3-second filters
     filtered_df_3s = helper_functions.apply_three_second_filters(raw_df, inverters) # Apply filter
@@ -23,6 +23,9 @@ def main():
     # Filter and Average to 15 mins
     one_minute_df = pd.read_csv("output_data/one_minute_data.csv") # Import data
     fifteen_min_df = helper_functions.apply_15_min_filter(one_minute_df)
+
+
+    fifteen_min_df.to_csv("output_data/fifteen_min_data.csv", index=False)
     print(fifteen_min_df)
 
     # Export data

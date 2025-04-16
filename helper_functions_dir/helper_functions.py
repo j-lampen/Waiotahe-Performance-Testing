@@ -102,7 +102,9 @@ def export_3s_data(df, valid_csv="output_data/3_sec_valid_data.csv", non_valid_c
 
     # Save valid data if available
     if not valid_df.empty:
-        valid_df.to_csv(valid_csv, index=False)
+        cols_to_exclude = ['is_valid', 'rejection_reason', 'is_constrained_inverter_1', 'is_constrained_inverter_2', 'is_constrained_inverter_3', 'is_constrained_inverter_4', 'is_constrained_inverter_5', 'is_constrained_inverter_6', 'is_wind_stowed']
+        valid_df_to_save = valid_df.drop(columns=cols_to_exclude)
+        valid_df_to_save.to_csv(valid_csv, index=False)
         print(f"✅ Valid 3-second data saved to: {valid_csv} ({len(valid_df)} rows)\n")
     else:
         print("⚠ Warning: No valid 3-second data to save. Check filtering criteria.\n")
@@ -155,23 +157,7 @@ def export_valid_one_minute_data(df, output_csv="one_minute_data.csv"):
     """
     Exports the aggregated 1-minute data to a CSV file.
     """
-
-    # Columns to exclude
-    exclude_cols = [
-        'is_valid',
-        'is_constrained_inverter_1',
-        'is_constrained_inverter_2',
-        'is_constrained_inverter_3',
-        'is_constrained_inverter_4',
-        'is_constrained_inverter_5',
-        'is_constrained_inverter_6',
-        'is_wind_stowed'
-    ]
-
-    # Drop excluded columns if they exist
-    df_to_export = df.drop(columns=[col for col in exclude_cols if col in df.columns])
-
-    df_to_export.to_csv(output_csv, index=False)
+    df.to_csv(output_csv, index=False)
 
     print(f"✅ 1-minute averaged data saved to: {output_csv} ({len(df)} rows)\n")
 
@@ -183,10 +169,12 @@ def prepare_15_min_filtering(df):
     df = df.rename(columns={original_col: '15 Minute'})
 
     # Convert to datetime and floor to 15-minute
-    df['15 Minute'] = pd.to_datetime(df['15 Minute'], format="%Y-%m-%d %H:%M")
+    df['15 Minute'] = pd.to_datetime(df['15 Minute'], format="%Y-%m-%d %H:%M:%S")
+    df['15 Minute'] = df['15 Minute'].dt.floor('15min')
 
     # Add "is_valid" columnS
     df["is_valid"] = 1
+    df['rejection_reason'] = df.apply(lambda _: [], axis=1)
 
     return df
 
