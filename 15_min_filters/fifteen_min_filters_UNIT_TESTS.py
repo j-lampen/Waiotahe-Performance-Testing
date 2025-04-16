@@ -8,36 +8,88 @@ from helper_functions import prepare_15_min_filtering
 
 class FilterIrradiance(unittest.TestCase):
 
-    def setUp(self):
-        # Read the CSV data from the file
-        df = pd.read_csv("unit_test_data/filter_irradiance_test_data.csv", parse_dates=[0])
-        print(len(df))
-        self.df = prepare_15_min_filtering(df)
+    def test_filter_irradiance_ghi_good(self):
 
+        # Arrange
+        df = pd.read_csv("unit_test_data/irradiance_filter_unit_test_data_ghi_good.csv")  # Import data
+        df['rejection_reason'] = df.apply(lambda _: [], axis=1) # Add rejection_reason col
 
-    def test_filter_irradiance(self):
-        df = fifteen_min_filters.filter_irradiance(self.df)
+        # Act
+        df = fifteen_min_filters.filter_irradiance(df)
 
-        # Check if DataFrame is loaded correctly
-        self.assertEqual(len(df), 120)
-        # self.assertIn('Date', df.columns)
-        # self.assertIn('is_valid', df.columns)
-        # self.assertIn('rejection_reason', df.columns)
-        #
-        # # Check if active power and apparent power columns are loaded correctly
-        # self.assertEqual(df.loc[0, 'VALUE(RGT-SWBD201-PQM201-P-M.UNIT1@NET1)'], 23)
-        # self.assertEqual(df.loc[1, 'VALUE(RGT-SWBD201-PQM201-P-M.UNIT1@NET1)'], 24)
-        # self.assertEqual(df.loc[2, 'VALUE(RGT-SWBD201-PQM201-S-M.UNIT1@NET1)'], 26)
-        # self.assertEqual(df.loc[3, 'VALUE(RGT-SWBD201-PQM201-S-M.UNIT1@NET1)'], 27)
-        #
-        # # Check if is_valid and rejection_reason columns are updated correctly
-        # self.assertEqual(df.loc[0, 'is_valid'], 1)
-        # self.assertEqual(df.loc[1, 'is_valid'], 0)
-        # self.assertEqual(df.loc[2, 'is_valid'], 1)
-        # self.assertEqual(df.loc[3, 'is_valid'], 0)
-        #
-        # self.assertEqual(df.loc[0, 'rejection_reason'], [])
-        # self.assertEqual(df.loc[1, 'rejection_reason'], ["Point of Connection Limitation"])
-        # self.assertEqual(df.loc[2, 'rejection_reason'], [])
-        # self.assertEqual(df.loc[3, 'rejection_reason'], ["Point of Connection Limitation"])
+        # Assert
+        self.assertEqual(len(df), 15, "Expected 15 rows in DataFrame.")
+        self.assertIn('15 Minute', df.columns, "'15 Minute' column missing.")
+        self.assertIn('is_valid', df.columns, "'is_valid' column missing.")
+        self.assertIn('rejection_reason', df.columns, "'rejection_reason' column missing.")
+        self.assertTrue(all(isinstance(x, list) and len(x) == 0 for x in df['rejection_reason']), "Some rejection_reason entries are not empty lists.")
+        self.assertTrue(all(df['is_valid'] == 1), "Some is_valid entries are not 1.")
 
+    def test_filter_irradiance_ghi_bad_lower(self):
+        # Arrange
+        df = pd.read_csv("unit_test_data/irradiance_filter_unit_test_data_ghi_bad_lower.csv")
+        df['rejection_reason'] = df.apply(lambda _: [], axis=1)
+
+        # Act
+        df = fifteen_min_filters.filter_irradiance(df)
+
+        # Assert
+        self.assertEqual(len(df), 15, "Expected 15 rows in DataFrame.")
+        self.assertIn('15 Minute', df.columns, "'15 Minute' column missing.")
+        self.assertIn('is_valid', df.columns, "'is_valid' column missing.")
+        self.assertIn('rejection_reason', df.columns, "'rejection_reason' column missing.")
+        self.assertTrue(all(df['is_valid'] == 0), "Expected all rows to have is_valid = 0.")
+        self.assertTrue(
+            all(
+                "Irradiance Problem - WS211_ghi_lower_limit" in reasons and
+                "Irradiance Problem - WS231_ghi_lower_limit" in reasons
+                for reasons in df['rejection_reason']
+            ),
+            "Each row should include both WS211 and WS231 GHI lower limit rejection reasons."
+        )
+
+    def test_filter_irradiance_ghi_bad_upper(self):
+        # Arrange
+        df = pd.read_csv("unit_test_data/irradiance_filter_unit_test_data_ghi_bad_upper.csv")
+        df['rejection_reason'] = df.apply(lambda _: [], axis=1)
+
+        # Act
+        df = fifteen_min_filters.filter_irradiance(df)
+
+        # Assert
+        self.assertEqual(len(df), 15, "Expected 15 rows in DataFrame.")
+        self.assertIn('15 Minute', df.columns, "'15 Minute' column missing.")
+        self.assertIn('is_valid', df.columns, "'is_valid' column missing.")
+        self.assertIn('rejection_reason', df.columns, "'rejection_reason' column missing.")
+        self.assertTrue(all(df['is_valid'] == 0), "Expected all rows to have is_valid = 0.")
+        self.assertTrue(
+            all(
+                "Irradiance Problem - WS211_ghi_upper_limit" in reasons and
+                "Irradiance Problem - WS231_ghi_upper_limit" in reasons
+                for reasons in df['rejection_reason']
+            ),
+            "Each row should include both WS211 and WS231 GHI upper limit rejection reasons."
+        )
+
+    def test_filter_irradiance_poa_bad_lower(self):
+        # Arrange
+        df = pd.read_csv("unit_test_data/irradiance_filter_unit_test_data_poa_bad_lower.csv")
+        df['rejection_reason'] = df.apply(lambda _: [], axis=1)
+
+        # Act
+        df = fifteen_min_filters.filter_irradiance(df)
+
+        # Assert
+        self.assertEqual(len(df), 15, "Expected 15 rows in DataFrame.")
+        self.assertIn('15 Minute', df.columns, "'15 Minute' column missing.")
+        self.assertIn('is_valid', df.columns, "'is_valid' column missing.")
+        self.assertIn('rejection_reason', df.columns, "'rejection_reason' column missing.")
+        self.assertTrue(all(df['is_valid'] == 0), "Expected all rows to have is_valid = 0.")
+        self.assertTrue(
+            all(
+                "Irradiance Problem - WS211_poa_lower_limit" in reasons and
+                "Irradiance Problem - WS231_poa_lower_limit" in reasons
+                for reasons in df['rejection_reason']
+            ),
+            "Each row should include both WS211 and WS231 POA lower limit rejection reasons."
+        )

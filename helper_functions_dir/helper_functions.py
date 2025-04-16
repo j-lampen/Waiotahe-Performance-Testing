@@ -185,6 +185,21 @@ def apply_15_min_filter(df):
 
     # Apply filters
 
+    # Group by 15-minute timestamp
+    for time_slice, fifteen_min_df in df.groupby('15 Minute'):
+        print(fifteen_min_df)
+
+        # Filter Irradiance
+
+        # Filter Temperature
+
+        # Filter Wind Speed
+
+        # Filter Power (AC Power Rating)
+
+
+
+
 
     return df
 
