@@ -5,4 +5,6 @@ input_data/
 # Ignore output_data folder
 output_data/
 
+# Ignore Pycharm stuff
+.idea/
 
