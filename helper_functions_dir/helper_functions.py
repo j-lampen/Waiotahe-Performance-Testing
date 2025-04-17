@@ -184,12 +184,12 @@ def apply_15_min_filter(df):
     df = prepare_15_min_filtering(df)
 
     # Apply filters
-
-    # Group by 15-minute timestamp
-    for time_slice, fifteen_min_df in df.groupby('15 Minute'):
-        print(fifteen_min_df)
+    #
+    # # Group by 15-minute timestamp
+    # for time_slice, fifteen_min_df in df.groupby('15 Minute'):
 
         # Filter Irradiance
+
 
         # Filter Temperature
 
