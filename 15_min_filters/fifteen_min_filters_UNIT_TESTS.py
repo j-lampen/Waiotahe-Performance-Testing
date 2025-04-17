@@ -299,3 +299,34 @@ class FilterWind(unittest.TestCase):
                       "Expected WS211 Wind Speed to be flagged for abrupt change.")
         self.assertIn("Abrupt change - WS231 Wind Speed derivative > 10", rejection_reasons,
                       "Expected WS231 Wind Speed to be flagged for abrupt change.")
+
+    def test_filter_power_range_good(self):
+        # Arrange
+        df = pd.read_csv("unit_test_data/power/power_filter_unit_test_data_range_good.csv")
+        df['rejection_reason'] = df.apply(lambda _: [], axis=1)
+        rating = 23.7 # MW
+
+        # Act
+        df, rejection_reasons = fifteen_min_filters.filter_power_range(df, rejection_reasons=[], rating=rating)
+
+        # Assert
+        self.assertEqual(len(df), 15, "Expected 15 rows in DataFrame.")
+        self.assertIn('15 Minute', df.columns, "'15 Minute' column missing.")
+        self.assertIn('rejection_reason', df.columns, "'rejection_reason' column missing.")
+        self.assertEqual(len(rejection_reasons), 0, "Expected no rejection reasons for power range (good data).")
+
+    def test_filter_power_range_bad(self):
+        # Arrange
+        df = pd.read_csv("unit_test_data/power/power_filter_unit_test_data_range_bad.csv")
+        df['rejection_reason'] = df.apply(lambda _: [], axis=1)
+        rating = 23.7 # MW
+
+        # Act
+        df, rejection_reasons = fifteen_min_filters.filter_power_range(df, rejection_reasons=[], rating=rating)
+
+        # Assert
+        self.assertEqual(len(df), 15, "Expected 15 rows in DataFrame.")
+        self.assertIn('15 Minute', df.columns, "'15 Minute' column missing.")
+        self.assertIn('rejection_reason', df.columns, "'rejection_reason' column missing.")
+        self.assertIn("Power out of range", rejection_reasons,
+                      "Expected rejection reason for power range violation.")

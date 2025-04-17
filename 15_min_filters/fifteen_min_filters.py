@@ -134,9 +134,7 @@ def filter_temperature_dead_value(fifteen_min_df, rejection_reasons):
 def filter_temperature_abrupt_change(fifteen_min_df, rejection_reasons):
     # WS211 Temperature abrupt change check
     WS211_temp_series = fifteen_min_df['VALUE(RGT-WSTAT211-ATR.UNIT1@NET1)']
-    print(WS211_temp_series)
     WS211_temp_diffs = WS211_temp_series.diff().abs().dropna()  # Absolute differences between readings
-    print(WS211_temp_diffs)
     if (WS211_temp_diffs > 4).any():
         rejection_reasons.append("Abrupt change - WS211 Temperature derivative > 4")
 
@@ -211,10 +209,46 @@ def filter_wind_speed(fifteen_min_df, rejection_reasons):
         # Wind lower bound of < 0.5 m/s does not make sense.
 
     # Apply dead value filter
-
+    fifteen_min_df, rejection_reasons = filter_wind_dead_value(fifteen_min_df, rejection_reasons)
 
     # Apply abrupt change and stability filter
+    fifteen_min_df, rejection_reasons = filter_wind_abrupt_change(fifteen_min_df, rejection_reasons)
 
+    # Update flags in the DataFrame
+    if rejection_reasons:
+        fifteen_min_df['is_valid'] = 0
+        fifteen_min_df['rejection_reason'] = fifteen_min_df['rejection_reason'].apply(lambda x: x + rejection_reasons)
+
+    return fifteen_min_df
+
+def filter_power_range(fifteen_min_df, rejection_reasons, rating):
+    power_series = fifteen_min_df['VALUE(RGT-SWBD201-PQM201-P-M.UNIT1@NET1)']
+    power_average = power_series.mean()
+
+    upper_limit = 1.02 * rating
+    lower_limit = -0.01 * rating
+
+    power_OK = lower_limit <= power_average <= upper_limit
+
+    if not power_OK:
+        rejection_reasons.append("Power out of range")
+
+    return fifteen_min_df, rejection_reasons
+
+def filter_AC_power(fifteen_min_df, rejection_reasons):
+    # Set up rejection reasons list
+    rejection_reasons = []
+
+    # Apply range filter
+        # Power will not be above 1.02 * rating as is filtered out in 3 sec filters.
+        # Power lower that - 0.01 * rating is interesting
+    fifteen_min_df, rejection_reasons = filter_power_range(fifteen_min_df, rejection_reasons, rating=23.7)
+
+    # # Apply dead value filter
+    # fifteen_min_df, rejection_reasons =
+    #
+    # # Apply abrupt change and stability filter
+    # fifteen_min_df, rejection_reasons =
 
     # Update flags in the DataFrame
     if rejection_reasons:
