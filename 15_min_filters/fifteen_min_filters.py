@@ -235,20 +235,51 @@ def filter_power_range(fifteen_min_df, rejection_reasons, rating):
 
     return fifteen_min_df, rejection_reasons
 
+def filter_power_dead_value(fifteen_min_df, rejection_reasons):
+    # Get power series
+    power_series = fifteen_min_df['VALUE(RGT-SWBD201-PQM201-P-M.UNIT1@NET1)']
+    
+    # Calculate percentage changes between consecutive readings
+    power_pct_changes = power_series.pct_change().abs() * 100
+    
+    # Check for 3 consecutive readings with less than 0.1% change
+    # We use rolling window of 3 and check if all values in window are < 0.1
+    dead_value_windows = power_pct_changes.rolling(window=3).apply(lambda x: all(x < 0.1) if len(x) == 3 else False)
+    
+    # If any window has dead values, add rejection reason
+    if dead_value_windows.any():
+        rejection_reasons.append("Dead value - Power flat signal (< 0.1% change in 3 readings)")
+
+    return fifteen_min_df, rejection_reasons
+
+def filter_power_abrupt_change(fifteen_min_df, rejection_reasons):
+    # Get power series
+    power_series = fifteen_min_df['VALUE(RGT-SWBD201-PQM201-P-M.UNIT1@NET1)']
+    
+    # Calculate average and standard deviation
+    power_avg = power_series.mean()
+    power_std = power_series.std()
+    
+    # Check if standard deviation is more than 5% of average
+    if power_std > 0.05 * power_avg:
+        rejection_reasons.append("Abrupt change - Power standard deviation too high (> 5% of average)")
+
+    return fifteen_min_df, rejection_reasons
+
 def filter_AC_power(fifteen_min_df, rejection_reasons):
     # Set up rejection reasons list
     rejection_reasons = []
 
     # Apply range filter
-        # Power will not be above 1.02 * rating as is filtered out in 3 sec filters.
-        # Power lower that - 0.01 * rating is interesting
+    # Power will not be above 1.02 * rating as is filtered out in 3 sec filters.
+    # Power lower that - 0.01 * rating is interesting
     fifteen_min_df, rejection_reasons = filter_power_range(fifteen_min_df, rejection_reasons, rating=23.7)
 
-    # # Apply dead value filter
-    # fifteen_min_df, rejection_reasons =
-    #
-    # # Apply abrupt change and stability filter
-    # fifteen_min_df, rejection_reasons =
+    # Apply dead value filter
+    fifteen_min_df, rejection_reasons = filter_power_dead_value(fifteen_min_df, rejection_reasons)
+
+    # Apply abrupt change and stability filter
+    fifteen_min_df, rejection_reasons = filter_power_abrupt_change(fifteen_min_df, rejection_reasons)
 
     # Update flags in the DataFrame
     if rejection_reasons:

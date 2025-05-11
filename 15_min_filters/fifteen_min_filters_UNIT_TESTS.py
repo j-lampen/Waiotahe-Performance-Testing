@@ -3,8 +3,6 @@ import pandas as pd
 
 import fifteen_min_filters
 
-from helper_functions import prepare_15_min_filtering
-
 
 class FilterIrradiance(unittest.TestCase):
 
@@ -300,6 +298,9 @@ class FilterWind(unittest.TestCase):
         self.assertIn("Abrupt change - WS231 Wind Speed derivative > 10", rejection_reasons,
                       "Expected WS231 Wind Speed to be flagged for abrupt change.")
 
+
+class FilterPower(unittest.TestCase):
+
     def test_filter_power_range_good(self):
         # Arrange
         df = pd.read_csv("unit_test_data/power/power_filter_unit_test_data_range_good.csv")
@@ -330,3 +331,75 @@ class FilterWind(unittest.TestCase):
         self.assertIn('rejection_reason', df.columns, "'rejection_reason' column missing.")
         self.assertIn("Power out of range", rejection_reasons,
                       "Expected rejection reason for power range violation.")
+
+    def test_filter_power_dead_value_good(self):
+        # Arrange
+        df = pd.read_csv("unit_test_data/power/power_filter_unit_test_data_dead_value_good.csv")
+        df['rejection_reason'] = df.apply(lambda _: [], axis=1)
+
+        # Act
+        df, rejection_reasons = fifteen_min_filters.filter_power_dead_value(df, rejection_reasons=[])
+
+        # Assert
+        self.assertEqual(len(df), 15, "Expected 15 rows in DataFrame.")
+        self.assertIn('15 Minute', df.columns, "'15 Minute' column missing.")
+        self.assertIn('rejection_reason', df.columns, "'rejection_reason' column missing.")
+        self.assertEqual(len(rejection_reasons), 0, "Expected no rejection reasons for power dead value (good data).")
+
+    def test_filter_power_dead_value_bad(self):
+        # Arrange
+        df = pd.read_csv("unit_test_data/power/power_filter_unit_test_data_dead_value_bad.csv")
+        df['rejection_reason'] = df.apply(lambda _: [], axis=1)
+
+        # Act
+        df, rejection_reasons = fifteen_min_filters.filter_power_dead_value(df, rejection_reasons=[])
+
+        # Assert
+        self.assertEqual(len(df), 15, "Expected 15 rows in DataFrame.")
+        self.assertIn('15 Minute', df.columns, "'15 Minute' column missing.")
+        self.assertIn('rejection_reason', df.columns, "'rejection_reason' column missing.")
+        self.assertIn("Dead value - Power flat signal (< 0.1% change in 3 readings)", rejection_reasons,
+                      "Expected power to be flagged as a dead value.")
+
+    def test_filter_power_abrupt_change_good(self):
+        # Arrange
+        df = pd.read_csv("unit_test_data/power/power_filter_unit_test_data_abrupt_change_good.csv")
+        df['rejection_reason'] = df.apply(lambda _: [], axis=1)
+
+        # Sanity check on test input
+        power = df['VALUE(RGT-SWBD201-PQM201-P-M.UNIT1@NET1)']
+        mean_val = power.mean()
+        std_val = power.std()
+        self.assertLessEqual(std_val, 0.05 * mean_val,
+                           f"Test CSV may be misconfigured: std ({std_val:.4f}) > 5% of mean ({mean_val:.4f})")
+
+        # Act
+        df, rejection_reasons = fifteen_min_filters.filter_power_abrupt_change(df, rejection_reasons=[])
+
+        # Assert
+        self.assertEqual(len(df), 15, "Expected 15 rows in DataFrame.")
+        self.assertIn('15 Minute', df.columns, "'15 Minute' column missing.")
+        self.assertIn('rejection_reason', df.columns, "'rejection_reason' column missing.")
+        self.assertEqual(len(rejection_reasons), 0, "Expected no rejection reasons for stable power data.")
+
+    def test_filter_power_abrupt_change_bad(self):
+        # Arrange
+        df = pd.read_csv("unit_test_data/power/power_filter_unit_test_data_abrupt_change_bad.csv")
+        df['rejection_reason'] = df.apply(lambda _: [], axis=1)
+
+        # Sanity check: confirm power is unstable
+        power = df['VALUE(RGT-SWBD201-PQM201-P-M.UNIT1@NET1)']
+        mean_val = power.mean()
+        std_val = power.std()
+        self.assertGreater(std_val, 0.05 * mean_val,
+                         f"Test CSV may be misconfigured: std ({std_val:.4f}) ≤ 5% of mean ({mean_val:.4f})")
+
+        # Act
+        df, rejection_reasons = fifteen_min_filters.filter_power_abrupt_change(df, rejection_reasons=[])
+
+        # Assert
+        self.assertEqual(len(df), 15, "Expected 15 rows in DataFrame.")
+        self.assertIn('15 Minute', df.columns, "'15 Minute' column missing.")
+        self.assertIn('rejection_reason', df.columns, "'rejection_reason' column missing.")
+        self.assertIn("Abrupt change - Power standard deviation too high (> 5% of average)", rejection_reasons,
+                      "Expected power to be flagged for instability.")
