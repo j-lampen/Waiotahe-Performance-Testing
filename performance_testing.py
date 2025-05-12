@@ -24,8 +24,9 @@ def main():
     one_minute_df = pd.read_csv("output_data/one_minute_data.csv") # Import data
     fifteen_min_df = helper_functions.apply_15_min_filter(one_minute_df)
 
-    # Export data
-    fifteen_min_df.to_csv("output_data/fifteen_min_data.csv", index=False)
+    # # Export data
+    # fifteen_min_df.to_csv("output_data/fifteen_min_data.csv", index=False)
+
 
 main()
 

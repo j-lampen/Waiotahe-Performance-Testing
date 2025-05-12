@@ -177,7 +177,7 @@ def prepare_15_min_filtering(df):
 
     return df
 
-def apply_15_min_filter(df):
+def apply_15_min_filter(one_minute_df):
     """
     Applies 15-minute filters to the DataFrame.
     Filters include:
@@ -187,15 +187,18 @@ def apply_15_min_filter(df):
     - Power (range, dead value, abrupt change)
     
     Note: If any filter fails, the entire 15-minute slice is marked as invalid.
+
+    Input:
+    - df: DataFrame with 1 minute data
+
+    Output:
+    - df: DataFrame with 15-minute data marked as valid or invalid with rejection reasons
+
     """
-    # Prepare df for 15 min filtering
-    df = prepare_15_min_filtering(df)
+    # Prepare one_minute_df for 15 min filtering (floor to 15 min)
+    df = prepare_15_min_filtering(one_minute_df)
 
-    # For debugging
-    # df.to_csv("debugging/output.csv", index=False)
-    # print(type(df))
-
-    # Group by 15-minute timestamp (using as_index=False so that the group key is not dropped) and apply filters
+    # Group by 15-minute timestamp and apply filters
     filtered_dfs = []
 
     for time_slice, fifteen_min_df in df.groupby('15 Minute'):
@@ -218,12 +221,33 @@ def apply_15_min_filter(df):
         fifteen_min_df = fifteen_min_filters.filter_temperature(fifteen_min_df, rejection_reasons)
         fifteen_min_df = fifteen_min_filters.filter_wind_speed(fifteen_min_df, rejection_reasons)
         fifteen_min_df = fifteen_min_filters.filter_AC_power(fifteen_min_df, rejection_reasons)
+
+        rejection_reasons_list = fifteen_min_df['rejection_reason'].iloc[0]
+        
+        # Create a new dataframe, with only one row. This row will have the mean of all the rows in the fifteen_min_df (except for the rejection_reasons column which will be the values of the first row).
+        fifteen_min_df = fifteen_min_df.mean(numeric_only=True).to_frame().T
+        fifteen_min_df['15 Minute'] = pd.Timestamp(time_slice)
+
+        # Reorder columns to put '15 Minute' first
+        cols = ['15 Minute'] + [col for col in fifteen_min_df.columns if col != '15 Minute']
+        fifteen_min_df = fifteen_min_df[cols]
+
+        # Add rejection reasons to the dataframe     
+        fifteen_min_df['rejection_reason'] = [rejection_reasons_list]
+
         filtered_dfs.append(fifteen_min_df)
 
     # Combine all filtered DataFrames
     df = pd.concat(filtered_dfs, ignore_index=True)
-    df.to_csv("debugging/output.csv", index=False)
+
     return df
 
+def export_good_15_min_data(df, output_csv="good_15_min_data.csv"):
+    """
+    Exports the good 15-minute data to a CSV file.
+    """
 
+    df.to_csv(output_csv, index=False)
+
+    print(f"✅ Good 15-minute data saved to: {output_csv} ({len(df)} rows)\n")
 
