@@ -201,31 +201,24 @@ def apply_15_min_filter(one_minute_df):
     # Group by 15-minute timestamp and apply filters
     filtered_dfs = []
 
-    for time_slice, fifteen_min_df in df.groupby('15 Minute'):
-        # Create a copy to avoid modifying the original
-        fifteen_min_df = fifteen_min_df.copy()
+    for time_slice, fifteen_min_group in df.groupby('15 Minute'):
 
-        # Convert the group key (time_slice) to a pandas Timestamp (using pd.Timestamp) and then re–assign (using astype('datetime64[ns]')) so that "15 Minute" is in datetime format.
-        fifteen_min_df['15 Minute'] = pd.Timestamp(time_slice)
+        # fifteen_min_group is a DataFrame with 15, one minute data points for a single 15 minute period
+        fifteen_min_group = fifteen_min_group.copy()
 
-        # Initialize rejection reasons for this time slice
-        rejection_reasons = []
-
-        # For debugging
-        # print(f"time_slice: {time_slice}")
-        # fifteen_min_df.to_csv("debugging/output.csv", index=False)
-        # print(type(fifteen_min_df))
+        # Convert the group key (time_slice) to a pandas Timestamp (using pd.Timestamp) 
+        fifteen_min_group['15 Minute'] = pd.Timestamp(time_slice)
 
         # Apply all filters
-        fifteen_min_df = fifteen_min_filters.filter_irradiance(fifteen_min_df, 700, 450)
-        fifteen_min_df = fifteen_min_filters.filter_temperature(fifteen_min_df, rejection_reasons)
-        fifteen_min_df = fifteen_min_filters.filter_wind_speed(fifteen_min_df, rejection_reasons)
-        fifteen_min_df = fifteen_min_filters.filter_AC_power(fifteen_min_df, rejection_reasons)
+        fifteen_min_group = fifteen_min_filters.filter_irradiance(fifteen_min_group, 700, 450)
+        fifteen_min_group = fifteen_min_filters.filter_temperature(fifteen_min_group)
+        fifteen_min_group = fifteen_min_filters.filter_wind_speed(fifteen_min_group)
+        fifteen_min_group = fifteen_min_filters.filter_AC_power(fifteen_min_group)
 
-        rejection_reasons_list = fifteen_min_df['rejection_reason'].iloc[0]
+        rejection_reasons_list = fifteen_min_group['rejection_reason'].iloc[0]
         
-        # Create a new dataframe, with only one row. This row will have the mean of all the rows in the fifteen_min_df (except for the rejection_reasons column which will be the values of the first row).
-        fifteen_min_df = fifteen_min_df.mean(numeric_only=True).to_frame().T
+        # Create a new dataframe, with only one row. This row will have the mean of all the rows in the fifteen_min_df 
+        fifteen_min_df = fifteen_min_group.mean(numeric_only=True).to_frame().T
         fifteen_min_df['15 Minute'] = pd.Timestamp(time_slice)
 
         # Reorder columns to put '15 Minute' first
@@ -242,12 +235,23 @@ def apply_15_min_filter(one_minute_df):
 
     return df
 
-def export_good_15_min_data(df, output_csv="good_15_min_data.csv"):
+def export_good_15_min_data(df):
     """
-    Exports the good 15-minute data to a CSV file.
+    Exports the good 15-minute data to a good_15_min_data.csv file only if is_valid is 1    
     """
+    # good
+    good_15_min_df = df[df['is_valid'] == 1]
+    good_15_min_df.to_csv("output_data/good_15_min_data.csv", index=False)
 
-    df.to_csv(output_csv, index=False)
+    print(f"✅ Good 15-minute data saved to: output_data/good_15_min_data.csv ({len(good_15_min_df)} rows)\n")
 
-    print(f"✅ Good 15-minute data saved to: {output_csv} ({len(df)} rows)\n")
+    # bad
+    bad_15_min_df = df[df['is_valid'] == 0]
+    bad_15_min_df.to_csv("output_data/bad_15_min_data.csv", index=False)
+
+    print(f"❌ Bad 15-minute data saved to: output_data/bad_15_min_data.csv ({len(bad_15_min_df)} rows)\n")
+
+
+
+
 

@@ -1,6 +1,6 @@
 import pandas as pd
 
-def filter_irradiance(fifteen_min_df, TRC=700, POA_lower_limit=450):
+def filter_irradiance(fifteen_min_df,  TRC=700, POA_lower_limit=450):
     # Set up rejection reasons list
     rejection_reasons = []
 
@@ -148,7 +148,7 @@ def filter_temperature_abrupt_change(fifteen_min_df, rejection_reasons):
     return fifteen_min_df, rejection_reasons
 
 
-def filter_temperature(fifteen_min_df, rejection_reasons):
+def filter_temperature(fifteen_min_df):
     # Set up rejection reasons list
     rejection_reasons = []
 
@@ -201,7 +201,7 @@ def filter_wind_abrupt_change(fifteen_min_df, rejection_reasons):
     return fifteen_min_df, rejection_reasons
 
 
-def filter_wind_speed(fifteen_min_df, rejection_reasons):
+def filter_wind_speed(fifteen_min_df):
     # Set up rejection reasons list
     rejection_reasons = []
 
@@ -267,7 +267,7 @@ def filter_power_abrupt_change(fifteen_min_df, rejection_reasons):
 
     return fifteen_min_df, rejection_reasons
 
-def filter_AC_power(fifteen_min_df, rejection_reasons):
+def filter_AC_power(fifteen_min_df):
     # Set up rejection reasons list
     rejection_reasons = []
 
