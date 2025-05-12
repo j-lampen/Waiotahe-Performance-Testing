@@ -1,1 +1,0 @@
-# This file makes the 15_min_filters directory a Python package 

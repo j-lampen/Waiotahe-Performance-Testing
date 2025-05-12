@@ -1,5 +1,6 @@
 import pandas as pd
-import three_sec_filters
+import three_sec_filters.three_sec_filters as three_sec_filters
+import fifteen_min_filters.fifteen_min_filters as fifteen_min_filters
 
 pd.set_option('display.width', 300)
 pd.set_option('display.max_columns', 9)  # or 1000
@@ -163,14 +164,12 @@ def export_valid_one_minute_data(df, output_csv="one_minute_data.csv"):
 
 
 def prepare_15_min_filtering(df):
-
     # Rename the first column
     original_col = df.columns[0]
     df = df.rename(columns={original_col: '15 Minute'})
 
-    # Convert to datetime and floor to 15-minute
-    df['15 Minute'] = pd.to_datetime(df['15 Minute'], format="%Y-%m-%d %H:%M:%S")
-    df['15 Minute'] = df['15 Minute'].dt.floor('15min')
+    # Convert to datetime and floor to 15-minute, ensuring the entire column is in datetime64[ns] format
+    df['15 Minute'] = pd.to_datetime(df['15 Minute'], format="%Y-%m-%d %H:%M:%S").dt.floor('15min').astype('datetime64[ns]')
 
     # Add "is_valid" columnS
     df["is_valid"] = 1
@@ -179,28 +178,51 @@ def prepare_15_min_filtering(df):
     return df
 
 def apply_15_min_filter(df):
-
+    """
+    Applies 15-minute filters to the DataFrame.
+    Filters include:
+    - Irradiance (range, dead value, abrupt change)
+    - Temperature (range, dead value, abrupt change)
+    - Wind Speed (dead value, abrupt change)
+    - Power (range, dead value, abrupt change)
+    
+    Note: If any filter fails, the entire 15-minute slice is marked as invalid.
+    """
     # Prepare df for 15 min filtering
     df = prepare_15_min_filtering(df)
 
-    # Apply filters
-    #
-    # # Group by 15-minute timestamp
-    # for time_slice, fifteen_min_df in df.groupby('15 Minute'):
+    # For debugging
+    # df.to_csv("debugging/output.csv", index=False)
+    # print(type(df))
 
-        # Filter Irradiance
+    # Group by 15-minute timestamp (using as_index=False so that the group key is not dropped) and apply filters
+    filtered_dfs = []
 
+    for time_slice, fifteen_min_df in df.groupby('15 Minute'):
+        # Create a copy to avoid modifying the original
+        fifteen_min_df = fifteen_min_df.copy()
 
-        # Filter Temperature
+        # Convert the group key (time_slice) to a pandas Timestamp (using pd.Timestamp) and then re–assign (using astype('datetime64[ns]')) so that "15 Minute" is in datetime format.
+        fifteen_min_df['15 Minute'] = pd.Timestamp(time_slice)
 
-        # Filter Wind Speed
+        # Initialize rejection reasons for this time slice
+        rejection_reasons = []
 
-        # Filter Power (AC Power Rating)
+        # For debugging
+        # print(f"time_slice: {time_slice}")
+        # fifteen_min_df.to_csv("debugging/output.csv", index=False)
+        # print(type(fifteen_min_df))
 
+        # Apply all filters
+        fifteen_min_df = fifteen_min_filters.filter_irradiance(fifteen_min_df, 700, 450)
+        fifteen_min_df = fifteen_min_filters.filter_temperature(fifteen_min_df, rejection_reasons)
+        fifteen_min_df = fifteen_min_filters.filter_wind_speed(fifteen_min_df, rejection_reasons)
+        fifteen_min_df = fifteen_min_filters.filter_AC_power(fifteen_min_df, rejection_reasons)
+        filtered_dfs.append(fifteen_min_df)
 
-
-
-
+    # Combine all filtered DataFrames
+    df = pd.concat(filtered_dfs, ignore_index=True)
+    df.to_csv("debugging/output.csv", index=False)
     return df
 
 
