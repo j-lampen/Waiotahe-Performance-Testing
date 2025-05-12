@@ -242,6 +242,8 @@ def filter_power_dead_value(fifteen_min_df, rejection_reasons):
     
     # Calculate percentage changes between consecutive readings
     power_pct_changes = power_series.pct_change().abs() * 100
+
+    # print(power_pct_changes)
     
     # Check for 3 consecutive readings with less than 0.1% change
     # We use rolling window of 3 and check if all values in window are < 0.1
