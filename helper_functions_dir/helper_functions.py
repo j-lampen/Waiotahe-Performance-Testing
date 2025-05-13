@@ -22,7 +22,16 @@ class Inverter:
         return f"Inverter {self.name} ({self.label})"
 
 def load_and_initialize_df(filename):
+    """
+    Loads and initializes a DataFrame from a CSV file.
+    """
+    # Visual break
+    print("-" * 60)
+
+    print(f"\n🔹 Loading data from: {filename}\n")
     df = pd.read_csv(filename, skiprows=5, dayfirst=True, parse_dates=[0])
+
+    print(f"🔹 Loaded {len(df)} rows successfully.\n")
 
     # Ensure "Date" column is in datetime format
     df['Date'] = pd.to_datetime(df['Date'], format="%Y-%m-%d %H:%M:%S")
@@ -31,7 +40,7 @@ def load_and_initialize_df(filename):
     df["is_valid"] = 1
     df['rejection_reason'] = df.apply(lambda _: [], axis=1)  # Efficient list initialization
 
-    # Define inverter labels dynamically
+    # Define inverter labels 
     inverter_labels = ["INV011", "INV012", "INV023", "INV024", "INV035", "INV036"]
 
     # Create inverter objects based on available labels
@@ -40,6 +49,9 @@ def load_and_initialize_df(filename):
     # Add inverter constraint columns dynamically
     for inverter in inverters:
         df[f'is_constrained_{inverter.name}'] = 0
+
+    # Visual break
+    print("-" * 60)
 
     return df, inverters  # Return DataFrame and inverter list
 
@@ -55,34 +67,30 @@ def apply_three_second_filters(df, inverters):
 
 
     # Apply Point of Connection Limitation Filter
-    print("⚙️ Applying 'Point of Connection Constraint' filter...\n")
+    print("    ⚙️  Applying 'Point of Connection Constraint' filter...\n")
     df_before = df["is_valid"].sum()
     df = three_sec_filters.point_of_connection_constraint(df)
     df_after = df["is_valid"].sum()
-    print(f"✅ Filter applied. {df_before - df_after} rows invalidated.\n")
+    print(f"    ✅  Filter applied. {df_before - df_after} rows invalidated.\n")
 
     # Apply Constrained Inverter Filter
-    print("⚙️ Applying 'Constrained Inverter' filter...\n")
+    print("     ⚙️  Applying 'Constrained Inverter' filter...\n")
     df_before = df["is_valid"].sum()
     df = three_sec_filters.filter_constrained_inverters(df, inverters)
     df_after = df["is_valid"].sum()
-    print(f"✅ Filter applied. {df_before - df_after} rows invalidated.\n")
+    print(f"    ✅  Filter applied. {df_before - df_after} rows invalidated.\n")
 
     # Apply Wind Stow Filter
-    print("⚙️ Applying 'Wind Stow' filter...\n")
+    print("     ⚙️  Applying 'Wind Stow' filter...\n")
     df_before = df["is_valid"].sum()
     df = three_sec_filters.filter_wind_stow(df)
     df_after = df["is_valid"].sum()
-    print(f"✅ Filter applied. {df_before - df_after} rows invalidated.\n")
+    print(f"    ✅ Filter applied. {df_before - df_after} rows invalidated.\n")
 
     # Final Count
     valid_rows = df["is_valid"].sum()
     total_rows = len(df)
     invalid_rows = total_rows - valid_rows
-
-    print(f"📊 Final row count after 3 second filtering:")
-    print(f"   ✅ Valid rows: {valid_rows}")
-    print(f"   ❌ Non-valid rows: {invalid_rows}\n")
 
     return df  # Return fully processed DataFrame
 
@@ -106,16 +114,19 @@ def export_3s_data(df, valid_csv="output_data/3_sec_valid_data.csv", non_valid_c
         cols_to_exclude = ['is_valid', 'rejection_reason', 'is_constrained_inverter_1', 'is_constrained_inverter_2', 'is_constrained_inverter_3', 'is_constrained_inverter_4', 'is_constrained_inverter_5', 'is_constrained_inverter_6', 'is_wind_stowed']
         valid_df_to_save = valid_df.drop(columns=cols_to_exclude)
         valid_df_to_save.to_csv(valid_csv, index=False)
-        print(f"✅ Valid 3-second data saved to: {valid_csv} ({len(valid_df)} rows)\n")
+        print(f"🔹 Valid 3-second data saved to: {valid_csv} ({len(valid_df)} rows)\n")
     else:
         print("⚠ Warning: No valid 3-second data to save. Check filtering criteria.\n")
 
     # Save non-valid data if available
     if not non_valid_df.empty:
         non_valid_df.to_csv(non_valid_csv, index=False)
-        print(f"❌ Non-valid 3-second data saved to: {non_valid_csv} ({len(non_valid_df)} rows)\n")
+        print(f"🔹  Non-valid 3-second data saved to: {non_valid_csv} ({len(non_valid_df)} rows)\n")
     else:
         print("⚠ Warning: No non-valid 3-second data to save. Check filtering criteria.\n")
+
+    # Visual break
+    print("-" * 60)
 
 
 
@@ -149,8 +160,8 @@ def aggregate_to_one_minute(df):
     numeric_cols = df_filtered.select_dtypes(include=['number']).columns
     avg_df = df_filtered.groupby('Minute')[numeric_cols].mean().reset_index()
 
-    print("✅ Finished 1-minute aggregation.\n")
-    print(f"ℹ️ Excluded {invalid_minutes_count} 1-minute periods due to insufficient data.")
+    print(f"🔹  Finished 1-minute aggregation.\n")
+    print(f"🔹 Excluded {invalid_minutes_count} 1-minute periods due to insufficient data.\n")
 
     return avg_df
 
@@ -160,7 +171,10 @@ def export_valid_one_minute_data(df, output_csv="one_minute_data.csv"):
     """
     df.to_csv(output_csv, index=False)
 
-    print(f"✅ 1-minute averaged data saved to: {output_csv} ({len(df)} rows)\n")
+    print(f"🔹  1-minute averaged data saved to: {output_csv} ({len(df)} rows)\n")
+
+    # Visual break
+    print("-" * 60)
 
 
 def prepare_15_min_filtering(df):
@@ -195,6 +209,8 @@ def apply_15_min_filter(one_minute_df):
     - df: DataFrame with 15-minute data marked as valid or invalid with rejection reasons
 
     """
+
+    print("\n🔹 Starting 15-minute filtering process...\n")
     # Prepare one_minute_df for 15 min filtering (floor to 15 min)
     df = prepare_15_min_filtering(one_minute_df)
 
@@ -233,6 +249,8 @@ def apply_15_min_filter(one_minute_df):
     # Combine all filtered DataFrames
     df = pd.concat(filtered_dfs, ignore_index=True)
 
+    print(f"🔹  Finished 15-minute filtering process.\n")
+
     return df
 
 def export_good_15_min_data(df):
@@ -243,13 +261,13 @@ def export_good_15_min_data(df):
     good_15_min_df = df[df['is_valid'] == 1]
     good_15_min_df.to_csv("output_data/good_15_min_data.csv", index=False)
 
-    print(f"✅ Good 15-minute data saved to: output_data/good_15_min_data.csv ({len(good_15_min_df)} rows)\n")
+    print(f"🔹 Good 15-minute data saved to: output_data/good_15_min_data.csv ({len(good_15_min_df)} rows)\n")
 
     # bad
     bad_15_min_df = df[df['is_valid'] == 0]
     bad_15_min_df.to_csv("output_data/bad_15_min_data.csv", index=False)
 
-    print(f"❌ Bad 15-minute data saved to: output_data/bad_15_min_data.csv ({len(bad_15_min_df)} rows)\n")
+    print(f"🔹 Bad 15-minute data saved to: output_data/bad_15_min_data.csv ({len(bad_15_min_df)} rows)\n")
 
 
 
