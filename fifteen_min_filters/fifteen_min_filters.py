@@ -278,8 +278,8 @@ def filter_AC_power(fifteen_min_df):
     # Power lower that - 0.01 * rating is interesting
     fifteen_min_df, rejection_reasons = filter_power_range(fifteen_min_df, rejection_reasons, rating=23.7)
 
-    # Apply dead value filter
-    fifteen_min_df, rejection_reasons = filter_power_dead_value(fifteen_min_df, rejection_reasons)
+    # Apply dead value filter - Causing issues - tolerence is too high.
+    # fifteen_min_df, rejection_reasons = filter_power_dead_value(fifteen_min_df, rejection_reasons)
 
     # Apply abrupt change and stability filter
     fifteen_min_df, rejection_reasons = filter_power_abrupt_change(fifteen_min_df, rejection_reasons)

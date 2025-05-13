@@ -1,0 +1,8 @@
+- Infratec have done power dead band filtering wrong (and dosent appear to be working)
+
+- recommend to drop the power dead value filter.
+	- With filter: 30 valid 15 min periods
+	- without filter: 139 valid points
+
+- Infratec have 158 valid periods
+	- 19 different - have made comments in "Infratec good periods vs lodestone"
