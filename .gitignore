@@ -1,10 +1,5 @@
-# Ignore input_data folder
 input_data/
-
-
-# Ignore output_data folder
 output_data/
-
-# Ignore Pycharm stuff
+documentation/
 .idea/
-
+test/
