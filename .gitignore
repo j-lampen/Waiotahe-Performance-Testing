@@ -1,5 +1,9 @@
-input_data/
-output_data/
-documentation/
-.idea/
-test/
+north_arrays/input_data/
+north_arrays/output_data/
+north_arrays/documentation/
+
+south_arrays/input_data/
+south_arrays/output_data/
+south_arrays/documentation/
+
+good_period_count.xlsx
